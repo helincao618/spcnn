@@ -1,2 +1,2 @@
-# Helin-Pannoptic-3D-Completion
+# Helin-Panoptic-3D-Completion
 Master Thesis
