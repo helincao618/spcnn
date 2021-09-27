@@ -1,2 +1,2 @@
-# Helin-Panoptic-3D-Completion
+# Semantic-Panoptic-Completion
 Master Thesis
