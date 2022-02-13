@@ -4,7 +4,6 @@ The thesis implemented a self-supervised approach that convert partial and noisy
 
 ### Install
 1. This implementation uses Python 3.6, [Pytorch1.7.1](http://pytorch.org/), cudatoolkit 11.0. We recommend to use [conda](https://docs.conda.io/en/latest/miniconda.html) to deploy the environment.
-   * Install with conda:
     ```
     conda env create -f environment.yml
     conda activate rfdnet
