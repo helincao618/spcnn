@@ -3,7 +3,7 @@
 The thesis implemented a self-supervised approach that convert partial and noisy RGB-D scans into high-quality 3D scene reconstructions with semantic labels by a sparse convolutional autoencoder.
 
 ### Install
- This implementation uses Python 3.6, [Pytorch1.7.1](http://pytorch.org/), cudatoolkit 11.0. We recommend to use [conda](https://docs.conda.io/en/latest/miniconda.html) to deploy the environment.
+1. This implementation uses Python 3.6, [Pytorch1.7.1](http://pytorch.org/), cudatoolkit 11.0. We recommend to use [conda](https://docs.conda.io/en/latest/miniconda.html) to deploy the environment.
     ```
     conda env create -f environment.yml
     conda activate rfdnet
@@ -15,31 +15,24 @@ The thesis implemented a self-supervised approach that convert partial and noisy
 
 
 ## Installation:  
- This thesis uses Python 3.8, Pytorch 1.4.0, cudatoolkit 10.0. We recommend to use conda to deploy the environment.
-
+1. This thesis uses Python 3.8, Pytorch 1.4.0, cudatoolkit 10.0. We recommend to use conda to deploy the environment.
     ```
     conda create -n spc python=3.8
     conda install pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.0 -c pytorch
     pip install plyfile h5py scipy
     ```
 
-The thesis also use [SparseConvNet](https://github.com/facebookresearch/SparseConvNet). Please install it in your virtual environment.
-
+2. The thesis also use [SparseConvNet](https://github.com/facebookresearch/SparseConvNet). Please install it in your virtual environment.
     ```
     export CUDA_HOME=/usr/local/cuda-10.0
-    
     git clone https://github.com/facebookresearch/SparseConvNet.git
-    
     cd SparseConvNet/
-    
     bash develop.sh
     ```
 
-For visualization, please install Marching Cubes
-
+3. For visualization, please install Marching Cubes
     ```
     cd torch/marching_cubes
-    
     python setup.py install
     ```
 
