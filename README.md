@@ -2,18 +2,6 @@
 
 The thesis implemented a self-supervised approach that convert partial and noisy RGB-D scans into high-quality 3D scene reconstructions with semantic labels by a sparse convolutional autoencoder.
 
-### Install
-1. This implementation uses Python 3.6, [Pytorch1.7.1](http://pytorch.org/), cudatoolkit 11.0. We recommend to use [conda](https://docs.conda.io/en/latest/miniconda.html) to deploy the environment.
-    ```
-    conda env create -f environment.yml
-    conda activate rfdnet
-    ```
-    * Install with pip:
-    ```
-    pip install -r requirements.txt
-    ```
-
-
 ## Installation:  
 1. This thesis uses Python 3.8, Pytorch 1.4.0, cudatoolkit 10.0. We recommend to use conda to deploy the environment.
     ```
