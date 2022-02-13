@@ -7,9 +7,7 @@ This thesis uses Python 3.8, Pytorch 1.4.0, cudatoolkit 10.0. We recommend to us
 
     ```
     conda create -n spc python=3.8
-    
     conda install pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.0 -c pytorch
-    
     pip install plyfile h5py scipy
     ```
 
