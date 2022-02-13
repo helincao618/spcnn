@@ -35,7 +35,9 @@ You can download the data, or generate using the script in `datageneration`.
 ### Generation
 * [GenerateScans](datagen/GenerateScans) depends on the [mLib](https://github.com/niessner/mLib) library.
 * [GenerateSemantic](datagen/GenerateSemantic)
-## Training:  
+
+## Model:
+### Training
 * See `python train.py --help` for all train options. 
 * Example command: 
 
