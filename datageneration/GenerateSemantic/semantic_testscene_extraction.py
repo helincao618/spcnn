@@ -1,3 +1,7 @@
+'''
+The script aims to generate the ground truth and align to the predication
+'''
+import struct
 import h5py
 import numpy as np
 from plyfile import PlyData
@@ -5,10 +9,6 @@ import json
 import os
 from tqdm import tqdm
 import csv
-
-
-SCALE_POINT_VOXEL = 50 / 5
-
 
 def create_color_palette():
     return [
@@ -55,16 +55,49 @@ def create_color_palette():
         (100, 85, 144)
     ]
 
+def write_ply(verts, colors, indices, output_file):
+    if colors is None:
+        colors = np.zeros_like(verts)
+    if indices is None:
+        indices = []
+    file = open(output_file, 'w')
+    file.write('ply \n')
+    file.write('format ascii 1.0\n')
+    file.write('element vertex {:d}\n'.format(len(verts)))
+    file.write('property float x\n')
+    file.write('property float y\n')
+    file.write('property float z\n')
+    file.write('property uchar red\n')
+    file.write('property uchar green\n')
+    file.write('property uchar blue\n')
+    file.write('element face {:d}\n'.format(len(indices)))
+    file.write('property list uchar uint vertex_indices\n')
+    file.write('end_header\n')
+    for vert, color in zip(verts, colors):
+        file.write("{:f} {:f} {:f} {:d} {:d} {:d}\n".format(vert[0], vert[1], vert[2], int(color[0]),
+                                                            int(color[1]), int(color[2])))
+    for ind in indices:
+        file.write('3 {:d} {:d} {:d}\n'.format(ind[0], ind[1], ind[2]))
+    file.close()
 
-def name_to_nuy40id(name, raw_name_list, name_list, id_list):
-    try:
-        return int(id_list[np.where(raw_name_list == name)])
-    except:
-        try:
-            return int(id_list[np.where(name_list == name)])
-        except:
-            print(name)
-
+def load_scene(file):
+    fin = open(file, 'rb')
+    dimx = struct.unpack('Q', fin.read(8))[0]
+    dimy = struct.unpack('Q', fin.read(8))[0]
+    dimz = struct.unpack('Q', fin.read(8))[0]
+    voxelsize = struct.unpack('f', fin.read(4))[0]
+    world2grid = struct.unpack('f'*4*4, fin.read(4*4*4))
+    world2grid = np.asarray(world2grid, dtype=np.float32).reshape([4, 4])
+    # data
+    num = struct.unpack('Q', fin.read(8))[0]
+    locs = struct.unpack('I'*num*3, fin.read(num*3*4))
+    locs = np.asarray(locs, dtype=np.int32).reshape([num, 3])
+    locs = np.flip(locs,1).copy() # convert to zyx ordering
+    sdf = struct.unpack('f'*num, fin.read(num*4))
+    sdf = np.asarray(sdf, dtype=np.float32)
+    sdf /= voxelsize
+    fin.close()
+    return [locs, sdf], [dimz, dimy, dimx], world2grid
 
 def visualize_semantic(semantic_label, out_name):
     zz, yy, xx = np.shape(semantic_label)
@@ -101,33 +134,6 @@ def visualize_semantic(semantic_label, out_name):
                     count += 1
     write_ply(points, colors, indices, out_name)
 
-
-def write_ply(verts, colors, indices, output_file):
-    if colors is None:
-        colors = np.zeros_like(verts)
-    if indices is None:
-        indices = []
-    file = open(output_file, 'w')
-    file.write('ply \n')
-    file.write('format ascii 1.0\n')
-    file.write('element vertex {:d}\n'.format(len(verts)))
-    file.write('property float x\n')
-    file.write('property float y\n')
-    file.write('property float z\n')
-    file.write('property uchar red\n')
-    file.write('property uchar green\n')
-    file.write('property uchar blue\n')
-    file.write('element face {:d}\n'.format(len(indices)))
-    file.write('property list uchar uint vertex_indices\n')
-    file.write('end_header\n')
-    for vert, color in zip(verts, colors):
-        file.write("{:f} {:f} {:f} {:d} {:d} {:d}\n".format(vert[0], vert[1], vert[2], int(color[0] * 255),
-                                                            int(color[1] * 255), int(color[2] * 255)))
-    for ind in indices:
-        file.write('3 {:d} {:d} {:d}\n'.format(ind[0], ind[1], ind[2]))
-    file.close()
-
-
 def read_ply(ply_file):
     with open(ply_file, 'rb') as read_file:
         ply_data = PlyData.read(read_file)
@@ -137,6 +143,15 @@ def read_ply(ply_file):
     points = np.array(points)
     return points
 
+def name_to_nuy40id(name, raw_name_list, name_list, id_list):
+    try:
+        return int(id_list[np.where(raw_name_list == name)])
+    except:
+        try:
+            return int(id_list[np.where(name_list == name)])
+        except:
+            print(name)
+
 
 def main():
     scenelist = open("scenelist_test.txt", "r")
@@ -144,22 +159,29 @@ def main():
     scenelist.close()
     name_mapping = open('category_mapping.tsv')
     name_mapping = np.array(list(csv.reader(name_mapping, delimiter="\t")))
-    raw_name_list = name_mapping[1:,1]
-    name_list = name_mapping[1:,2]
-    id_list = name_mapping[1:,5]
+    raw_name_list = name_mapping[1:, 1]
+    name_list = name_mapping[1:, 2]
+    id_list = name_mapping[1:, 5]
     id_list[1239] = '40'
-    output_dir = '../dataset/h5_semantic_scenes_extraction/'
+    output_dir = '../dataset/h5_semantic_groundtruth_scenes/'
+    mesh_file_dir = '../dataset/room_mesh/'
+    target_file_dir = '../dataset/mp_sdf_vox_2cm_target/'
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    for scene in tqdm(lines):
-        print('processing the scene '+scene)
-        input_path = '../dataset/room_mesh/' + scene
+    for scene in tqdm(lines[16:]):
+        print('processing the scene ' + scene)
+        input_path = mesh_file_dir + scene
         output_path = output_dir + scene
         list_dir = os.listdir(input_path)
         ply_files = [ply_file for ply_file in list_dir if 'ply' in ply_file]
         for ply_file in ply_files:
             ply_file_index = int(ply_file.lstrip('region').rstrip('.ply'))
-            print('processing the room ' + str(ply_file_index)+' of the scene '+scene)
+            target_file_path = target_file_dir + scene + '_room' + str(ply_file_index) + '__0__.sdf'
+            if not os.path.exists(target_file_path):
+                print(scene + '_room' + str(ply_file_index) + '__0__.sdf')
+                continue
+            [locs, sdf], [dimz, dimy, dimx], world2grid = load_scene(target_file_path)
+            print('processing the room ' + str(ply_file_index) + ' of the scene ' + scene)
             points = read_ply(input_path + '/' + ply_file)
             with open(input_path + '/region' + str(ply_file_index) + '.semseg.json', 'r') as load_f:
                 load_dict = json.load(load_f)
@@ -169,21 +191,20 @@ def main():
             categories = load_dict['segIndices']
             scale = [max(points[:, 0]) - min(points[:, 0]), max(points[:, 1]) - min(points[:, 1]),
                      max(points[:, 2]) - min(points[:, 2])]
-            volumn = np.zeros([int(scale[0] * SCALE_POINT_VOXEL) + 1, int(scale[1] * SCALE_POINT_VOXEL) + 1,
-                               int(scale[2] * SCALE_POINT_VOXEL) + 1], dtype=np.ubyte)
-            translation = np.array([-min(points[:, 0]) * SCALE_POINT_VOXEL, -min(points[:, 1])* SCALE_POINT_VOXEL, -min(points[:, 2])* SCALE_POINT_VOXEL])
+            volumn = np.zeros([int(scale[0] * world2grid[0][0]*1.5), int(scale[1] * world2grid[1][1]*1.5),
+                               int(scale[2] * world2grid[2][2]*1.5)], dtype=np.ubyte)
+            new_points = np.zeros(np.shape(points))
             for i in range(len(categories)):
-                locs = points[i] * SCALE_POINT_VOXEL + translation
-
-                if volumn[int(locs[0])][int(locs[1])][int(locs[2])] == 0:
-                    for label_dict in label_list:
-                        if categories[i] in label_dict["segments"]:
-                            label_name = label_dict["label"]
-                            label_index_nyu = name_to_nuy40id(label_name, raw_name_list, name_list, id_list)
-                            volumn[int(locs[0])][int(locs[1])][int(locs[2])] = label_index_nyu
-            world2grid = np.array([[SCALE_POINT_VOXEL,SCALE_POINT_VOXEL,SCALE_POINT_VOXEL], translation[::-1]])#record the translation in order zyx
-            visualize_semantic(volumn, output_path + '_room' + str(ply_file_index) + '.ply')
-            f = h5py.File(output_path + '_room' + str(ply_file_index) + '.h5', 'w')
+                new_points[i][0] = points[i][0] * world2grid[0][0] + world2grid[2][3]
+                new_points[i][1] = points[i][1] * world2grid[1][1] + world2grid[1][3]
+                new_points[i][2] = points[i][2] * world2grid[2][2] + world2grid[0][3]
+                for label_dict in label_list:
+                    if categories[i] in label_dict["segments"]:
+                        label_name = label_dict["label"]
+                        label_index_nyu = name_to_nuy40id(label_name, raw_name_list, name_list, id_list)
+                        volumn[int(new_points[i][0])][int(new_points[i][1])][int(new_points[i][2])] = label_index_nyu
+            visualize_semantic(volumn, output_path + '_room' + str(ply_file_index) + '__0__.ply')
+            f = h5py.File(output_path + '_room' + str(ply_file_index) + '__0__.h5', 'w')
             f.create_dataset('label', data=volumn)
             f.create_dataset('world2grid', data=world2grid)
             f.close()

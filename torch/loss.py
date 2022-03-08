@@ -1,4 +1,3 @@
-
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -217,11 +216,11 @@ def compute_loss(output_sdf, output_occs, target_for_sdf, target_for_occs, targe
             continue
         cur_loss = compute_sce_sparse_dense(outputs_semantic[h][0], outputs_semantic[h][1], semantic_hierarchy[h+1], batched=batched)
         if batched:
-            loss += loss_weights[h+1] * cur_loss * (2**(h+2))#raise the weight of semantic
-            losses_semantic.append(cur_loss.item() * (2**(h+2)))
+            loss += loss_weights[h+1] * cur_loss * (2**(h+3))#raise the weight of semantic
+            losses_semantic.append(cur_loss.item() * (2**(h+3)))
         else:
-            loss += loss_weights[h+1] * cur_loss  * (2**(h+2))
-            losses_semantic[h].extend(cur_loss * (2**(h+2)))
+            loss += loss_weights[h+1] * cur_loss  * (2**(h+3))
+            losses_semantic[h].extend(cur_loss * (2**(h+3)))
     return loss, losses, losses_semantic
 
 def compute_l1_tgtsurf_sparse_dense(sparse_pred_locs, sparse_pred_vals, dense_tgts, truncation, use_loss_masking, known, batched=True, thresh=None):

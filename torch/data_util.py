@@ -36,6 +36,13 @@ def get_train_files(data_path, semantic_data_path, train_file_list, val_file_lis
         semantic_val_files = [os.path.join(semantic_data_path, f.rstrip('.sdfs'))+'.h5' for f in val_names]
     return train_files, val_files, semantic_train_files, semantic_val_files
 
+def get_test_files(data_path, test_file_list):
+    test_names = open(test_file_list).read().splitlines()
+    if not '.' in test_names[0]:
+        test_names = [name + '__0__.sdf' for name in test_names]
+    test_files = [os.path.join(data_path, f) for f in test_names]
+    return test_files
+
 
 def dump_args_txt(args, output_file):
     with open(output_file, 'w') as f:
@@ -280,7 +287,7 @@ def save_predictions(output_path, names, inputs, target_for_sdf, target_for_occs
         feats = inputs[1][mask]
         
         input = sparse_to_dense_np(locs[:,:-1], feats, dims[2], dims[1], dims[0], -float('inf'))
-        mc.marching_cubes(torch.from_numpy(input), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'input-mesh' + ext))
+        # mc.marching_cubes(torch.from_numpy(input), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'input-mesh' + ext))
         if output_occs is not None:
             for h in range(num_hierarchy_levels):
                 transform = make_scale_transform(factors[h])
@@ -294,6 +301,6 @@ def save_predictions(output_path, names, inputs, target_for_sdf, target_for_occs
             mc.marching_cubes(torch.from_numpy(pred_sdf_dense), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'pred-mesh' + ext))
         if target_for_sdf is not None:
             target = target_for_sdf[k,0]
-            mc.marching_cubes(torch.from_numpy(target), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'target-mesh' + ext))
+            # mc.marching_cubes(torch.from_numpy(target), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'target-mesh' + ext))
 
 

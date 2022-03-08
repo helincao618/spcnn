@@ -57,15 +57,6 @@ args = parser.parse_args()
 assert( not (args.no_pass_feats and args.no_pass_occ) )
 assert( args.weight_missing_geo >= 1)
 assert( args.num_hierarchy_levels > 1 )
-# if args.input_dim == 0: # set default values
-#     args.input_dim = 2 ** (3+args.num_hierarchy_levels)
-#     #TODO FIX THIS PART
-#     if '64-64-128' in args.data_path:
-#         args.input_dim = (128, 64, 64)
-#     elif '96-96-160' in args.data_path:
-#         args.input_dim = (160, 96, 96)
-#     if '64-64-64' in args.data_path:
-#         args.input_dim = (64, 64, 64)
 args.input_nf = 1
 UP_AXIS = 0
 print(args)
@@ -96,11 +87,11 @@ num_overfit_val = 0 if not _OVERFIT else 160
 print('#train files = ', len(train_files))
 print('#val files = ', len(val_files))
 train_dataset = scene_dataloader.SceneDataset(train_files, semantic_train_files, args.input_dim, args.truncation, args.num_hierarchy_levels, 0, num_overfit_train)
-train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2, collate_fn=scene_dataloader.collate, drop_last=True)
+train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2, collate_fn=scene_dataloader.collate_train, drop_last=True)
 if len(val_files) > 0:
     val_dataset = scene_dataloader.SceneDataset(val_files, semantic_val_files, args.input_dim, args.truncation, args.num_hierarchy_levels, 0, num_overfit_val)
     print('val_dataset', len(val_dataset))
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2, collate_fn=scene_dataloader.collate, drop_last=True)
+    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2, collate_fn=scene_dataloader.collate_train, drop_last=True)
 
 _SPLITTER = ','
 

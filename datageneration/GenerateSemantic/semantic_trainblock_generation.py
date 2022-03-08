@@ -5,7 +5,7 @@ import os
 from tqdm import tqdm
 
 
-THRESHOLD = 2
+THRESHOLD = 2.5
 
 
 def create_color_palette():
@@ -249,8 +249,8 @@ def load_scene(file):
 def main():
     output_path = '../dataset/h5_semantic_train_blocks/'
     input_scene_path = '../dataset/mp_sdf_vox_2cm_target/'
-    input_block_path = '../dataset/sdf_train_blocks/'
-    input_semantic_path = '../dataset/h5_semantic_test_scenes/'
+    input_block_path = '../dataset/completion_blocks/'
+    input_semantic_path = '../dataset/h5_semantic_scenes_extraction/'
     block_index_list = os.listdir(input_block_path)
     print(block_index_list[405])
     for block_index in tqdm(block_index_list):
@@ -261,7 +261,7 @@ def main():
         world2grid_scene = load_scene(input_scene_path+room_index+'__0__.sdf')
         target_sdfs_chunk, [dimz_chunk, dimy_chunk, dimx_chunk], world2grid_chunk, hierarchy_chunk= load_block(
             input_block_path + block_index)
-        semantic_label_h5 = h5py.File(input_semantic_path+room_index+'.h5', 'r')
+        semantic_label_h5 = h5py.File(input_semantic_path+room_index+'__0__.h5', 'r')
         semantic_label = semantic_label_h5['label'][:]
         world2grid_semantic = semantic_label_h5['world2grid'][:]
         scale_zyx = world2grid_scene[0][0]/world2grid_semantic[0][1]
@@ -279,7 +279,6 @@ def main():
         hierarchy_chunk_level0 = (hierarchy_chunk[0] < THRESHOLD*8) & (hierarchy_chunk[0] > -THRESHOLD*8)
         hierarchy_chunk_level1 = (hierarchy_chunk[1] < THRESHOLD*4) & (hierarchy_chunk[1] > -THRESHOLD*4)
         hierarchy_chunk_level2 = (hierarchy_chunk[2] < THRESHOLD*2) & (hierarchy_chunk[2] > -THRESHOLD*2)
-
         hierarchy_semantic_level2 = semnantic_downsampling_factor2(chunk_semantic, hierarchy_chunk_level2)
         hierarchy_semantic_level1 = semnantic_downsampling_factor2(hierarchy_semantic_level2,hierarchy_chunk_level1)
         hierarchy_semantic_level0 = semnantic_downsampling_factor2(hierarchy_semantic_level1,hierarchy_chunk_level0)

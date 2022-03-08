@@ -5,7 +5,7 @@ import torch.utils.data
 
 import data_util
 
-def collate(batch):
+def collate_train(batch):
     names = [x['name'] for x in batch]
     # collect sparse inputs
     locs = batch[0]['input'][0]
@@ -37,6 +37,31 @@ def collate(batch):
     return {'name': names, 'input': [locs,feats], 'sdf': sdfs, 'world2grid': world2grids, 'known': known, 'hierarchy': hierarchy, 'orig_dims': orig_dims,\
         'semantic_target':semantic_targets, 'semantic_hierarchy':semantic_hierarchy}
 
+def collate_test(batch):
+    names = [x['name'] for x in batch]
+    # collect sparse inputs
+    locs = batch[0]['input'][0]
+    locs = torch.cat([locs, torch.zeros(locs.shape[0], 1).long()], 1)
+    feats = batch[0]['input'][1]
+    known = None
+    if batch[0]['known'] is not None:
+        known = torch.stack([x['known'] for x in batch])
+    colors = None
+    hierarchy = None
+    if batch[0]['hierarchy'] is not None:
+        hierarchy = [None]*len(batch[0]['hierarchy'])
+        for h in range(len(batch[0]['hierarchy'])):
+            hierarchy[h] = torch.stack([x['hierarchy'][h] for x in batch])
+    for b in range(1, len(batch)):
+        cur_locs = batch[b]['input'][0]
+        cur_locs = torch.cat([cur_locs, torch.ones(cur_locs.shape[0], 1).long()*b], 1)
+        locs = torch.cat([locs, cur_locs])
+        feats = torch.cat([feats, batch[b]['input'][1]])
+    sdfs = torch.stack([x['sdf'] for x in batch])
+    world2grids = torch.stack([x['world2grid'] for x in batch])
+    orig_dims = torch.stack([x['orig_dims'] for x in batch])
+    return {'name': names, 'input': [locs,feats], 'sdf': sdfs, 'world2grid': world2grids, 'known': known, 'hierarchy': hierarchy, 'orig_dims': orig_dims}
+
 
 class SceneDataset(torch.utils.data.Dataset):
 
@@ -48,7 +73,6 @@ class SceneDataset(torch.utils.data.Dataset):
             self.semantic_files = [f for f in semantic_files if os.path.isfile(f)]
         else:
             self.files = [(f,os.path.join(target_path, os.path.basename(f))) for f in files if (os.path.isfile(f) and os.path.isfile(os.path.join(target_path, os.path.basename(f))))]
-            self.semantic_files = [f for f in semantic_files if os.path.isfile(f)]
         self.input_dim = input_dim
         self.truncation = truncation
         self.num_hierarchy_levels = num_hierarchy_levels
@@ -67,7 +91,6 @@ class SceneDataset(torch.utils.data.Dataset):
         name = None
         if self.is_chunks:
             name = os.path.splitext(os.path.basename(file))[0]
-            
             inputs, targets, dims, world2grid, target_known, target_hierarchy = data_util.load_train_file(file)
         else:
             input_file = file[0]
@@ -125,12 +148,7 @@ class SceneDataset(torch.utils.data.Dataset):
             sample = {'name': name, 'input': inputs, 'sdf': targets, 'world2grid': world2grid, 'known': target_known, 'hierarchy': target_hierarchy, 'orig_dims': orig_dims,\
                 'semantic_target':label, 'semantic_hierarchy':semantic_hierarchy}
         else:
-            semantic_file = self.semantic_files[idx]
-            label, semantic_world2grid= data_util.load_semantic_scene(semantic_file)
-            label = torch.from_numpy(label)
-            semantic_world2grid = torch.from_numpy(semantic_world2grid)
-            sample = {'name': name, 'input': inputs, 'sdf': targets, 'world2grid': world2grid, 'known': target_known, 'hierarchy': target_hierarchy, 'orig_dims': orig_dims,\
-                'semantic_target':label, 'semantic_hierarchy':semantic_world2grid}
+            sample = {'name': name, 'input': inputs, 'sdf': targets, 'world2grid': world2grid, 'known': target_known, 'hierarchy': target_hierarchy, 'orig_dims': orig_dims}
         return sample
 
 

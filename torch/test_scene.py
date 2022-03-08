@@ -22,7 +22,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--gpu', type=int, default=0, help='which gpu to use')
 parser.add_argument('--input_data_path', required=True, help='path to input data')
 parser.add_argument('--target_data_path', required=True, help='path to target data')
-parser.add_argument('--semantic_data_path', required=True, help='path to semantic data')
 parser.add_argument('--test_file_list', required=True, help='path to file list of test data')
 parser.add_argument('--model_path', required=True, help='path to model to test')
 parser.add_argument('--output', default='./output', help='folder to output predictions')
@@ -118,21 +117,18 @@ def test(loss_weights, dataloader, output_vis, num_to_vis):
 
 def main():
     # data files
-    test_files, _, semantic_test_files, _ = data_util.get_train_files(args.input_data_path, args.semantic_data_path, args.test_file_list, '')
-    semantic_test_files = [f[:-8]+".h5" for f in semantic_test_files]
+    test_files = data_util.get_test_files(args.input_data_path, args.test_file_list)
     if len(test_files) > args.max_to_vis:
         test_files = test_files[:args.max_to_vis]
-        semantic_test_files = semantic_test_files[:args.max_to_vis]
     else:
         args.max_to_vis = len(test_files)
     random.seed(42)
     random.shuffle(test_files)
     print('#test files = ', len(test_files))
-    test_dataset = scene_dataloader.SceneDataset(test_files, semantic_test_files, args.input_dim, args.truncation, args.num_hierarchy_levels, args.max_input_height, 0, args.target_data_path)
-    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=scene_dataloader.collate)
+    test_dataset = scene_dataloader.SceneDataset(test_files, None, args.input_dim, args.truncation, args.num_hierarchy_levels, args.max_input_height, 0, args.target_data_path)
+    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=2, collate_fn=scene_dataloader.collate_test)
 
     if os.path.exists(args.output):
-        # raw_input('warning: output dir %s exists, press key to overwrite and continue' % args.output)
         input('warning: output dir %s exists, press key to overwrite and continue' % args.output)
     if not os.path.exists(args.output):
         os.makedirs(args.output)
