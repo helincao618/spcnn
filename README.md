@@ -6,6 +6,7 @@ The thesis implemented a self-supervised approach that convert partial and noisy
 1. This thesis uses Python 3.8, Pytorch 1.4.0, cudatoolkit 10.0. We recommend to use conda to deploy the environment.
     ```
     conda create -n spcnn python=3.8
+    conda activate spcnn
     conda install pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.0 -c pytorch
     pip install plyfile h5py scipy
     ```
