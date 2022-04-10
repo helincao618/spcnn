@@ -37,7 +37,7 @@ Workspace
 ```
 
 ## Data:
-###Completion
+### Completion
 You can download the data, or generate using the script in `datageneration/GenerateScans`.
 #### Download
 * Scene data: 
@@ -48,7 +48,7 @@ You can download the data, or generate using the script in `datageneration/Gener
 #### Generation
 * [GenerateScans](datageneration/GenerateScans) depends on the [mLib](https://github.com/niessner/mLib) library.
 
-###Semantic Segmentation
+### Semantic Segmentation
 You can generate the semantic data using the scripts in [GenerateSemantic](datageneration/GenerateSemantic) with the following steps.
 1. Download the `region segmentations` from [Matterport3D](https://niessner.github.io/Matterport/)
 2. Re-organize the file structure as follow
@@ -110,7 +110,7 @@ dataset
     ```
     --encoder_dim 16 --coarse_feat_dim 32 --refine_feat_dim 32
     ```
-###Evaluation
+### Evaluation
 * The completion result could be printed by the script `test_scene.py` 
 
 * To evaluate the semantic segmentation, you need to first generate the result using the script `test_scene.py` And then use the scripts `evaluation_semantic.py` 
