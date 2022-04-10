@@ -4,13 +4,8 @@ import os
 from plyfile import PlyData
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import argparse
 
-# EVAL_IDX_20 = [1,2,3,4,5,6,7,8,9,10,11,12,14,16,24,28,33,34,36,39]
-# LABEL_LIST_20 = ['wall','floor','cabinet','bed','chair','sofa','table','door','window','bookshelf','picture','counter',
-#               'desk','curtain','refridgerator','shower curtain','toilet','sink','bathtub','otherfurniture']
-# EVAL_IDX_20_NEW = [1,2,3,4,5,6,7,8,9,11,12,15,16,18,22,25,33,34,36,38]
-# LABEL_LIST_20_NEW = ['wall','floor','cabinet','bed','chair','sofa','table','door','window','picture','counter','shelves',
-#                      'curtain','pillow','refridgerator','television','toilet','sink','bathtub','otherstructure']
 EVAL_IDX = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
 LABEL_LIST = ['wall','floor','cabinet','bed','chair','sofa','table','door','window','bookshelf','picture','counter', 'blinds',                                                                                                   ''
               'desk','shelves','curtain','dresser','pillow','mirror','floormat', 'clothes', 'ceiling', 'books','refridgerator',
@@ -22,6 +17,16 @@ LABEL_LIST_20 = ['wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table', 'd
 EVAL_IDX_16 = [1,2,3,4,5,6,7,8,9,11,12,16,33,34,36,38]
 LABEL_LIST_16 = ['wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table', 'door', 'window', 'picture',
                  'counter', 'curtain', 'toilet', 'sink', 'bathtub', 'otherstructure']
+
+# params
+parser = argparse.ArgumentParser()
+# data paths
+parser.add_argument('--output_dir', type=str, required=True, help='output directory of visualization')
+parser.add_argument('--groundtruth_dir', type=str, required=True, help='groundtruth directory')
+parser.add_argument('--prediction_dir', type=str, required=True, help='prediction directory')
+parser.add_argument('--mesh_dir', type=str, help='mesh directory')
+parser.add_argument('--visualization', type=bool, default=False, help='If visualization the result in mesh')
+args = parser.parse_args()
 
 def create_color_palette():
     return [
@@ -87,8 +92,8 @@ def write_ply(verts, colors, indices, output_file):
     file.write('property list uchar uint vertex_indices\n')
     file.write('end_header\n')
     for vert, color in zip(verts, colors):
-        file.write("{:f} {:f} {:f} {:d} {:d} {:d}\n".format(vert[0], vert[1], vert[2], int(color[0] * 255),
-                                                            int(color[1] * 255), int(color[2] * 255)))
+        file.write("{:f} {:f} {:f} {:d} {:d} {:d}\n".format(vert[0], vert[1], vert[2], int(color[0]),
+                                                            int(color[1]), int(color[2])))
     for ind in indices:
         file.write('3 {:d} {:d} {:d}\n'.format(ind[0], ind[1], ind[2]))
     file.close()
@@ -146,26 +151,24 @@ def read_ply(ply_file):
 def main():
     evaluation_idx = EVAL_IDX_16
     label_list = LABEL_LIST_16
-    gt_file_dir = '../dataset/h5_semantic_groundtruth_scenes/'
-    output_dir = '../dataset/semantic_prediction/'
-    testlist = open("test_list.txt", "r")
+    gt_file_dir = args.groundtruth_dir
+    output_dir = args.output_dir
+    pred_dir = args.prediction_dir
+    testlist = open("../../filelists/test_list.txt", "r")
     test_list = testlist.read().splitlines()
     testlist.close()
     scene_list = [scene[29:] for scene in test_list]
     iou_list = np.zeros([2,len(evaluation_idx)])
     acc_list = np.zeros([2, len(evaluation_idx)])
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
     for i, scene in tqdm(enumerate(scene_list[5:])):
         if scene[17] == '.':
             gt_file_path = gt_file_dir + scene[:17]+'__0__.h5'
-            pred_file_path = '../mp/' + scene[:17] + '__0__semantic.h5'
-            target_mesh_path = '../dataset/room_mesh/' + scene[:11] + '/region' + scene[16:17] + '.ply'
+            pred_file_path = pred_dir + scene[:17] + '__0__semantic.h5'
+            target_mesh_path = args.mesh_dir + scene[:11] + '/region' + scene[16:17] + '.ply'
         else:
             gt_file_path = gt_file_dir + scene[:18]+'__0__.h5'
-            pred_file_path = '../mp/' + scene[:18] + '__0__semantic.h5'
-            target_mesh_path = '../dataset/room_mesh/' + scene[:11] + '/region' + scene[16:18] + '.ply'
-
+            pred_file_path = pred_dir + scene[:18] + '__0__semantic.h5'
+            target_mesh_path = args.mesh_dir + scene[:11] + '/region' + scene[16:18] + '.ply'
         if not os.path.exists(pred_file_path) or not os.path.exists(gt_file_path):
             print(pred_file_path)
             continue
@@ -182,7 +185,9 @@ def main():
         sementic_gt = sementic_gt[:zz,:yy,:xx]
         # Only keep iso surface
         sementic_pred_visualization = sementic_pred
+        sementic_gt_visualization = sementic_gt
         sementic_pred[sementic_gt < 0.5] = 0
+        sementic_gt[sementic_pred < 0.5] = 0
         # visualize_semantic(sementic_gt,'sementic_gt.ply')
         # visualize_semantic(sementic_pred,'sementic_pred.ply')
         # IOU and acc
@@ -195,24 +200,37 @@ def main():
             pred_mask[gt_mask == 0] = 0
             acc_list[0][j] = acc_list[0][j] + np.sum(pred_mask)
             acc_list[1][j] = acc_list[1][j] + np.sum(gt_mask)
-        # Visualize the prediction in mesh
-        # verts, colors, indices = read_ply(target_mesh_path)
-        # new_verts = np.zeros(np.shape(verts))
-        # for i in range(np.shape(verts)[0]):
-        #     new_verts[i][0] = verts[i][0]*semantic_world2grid[0][0][0]+semantic_world2grid[0][2][3]
-        #     new_verts[i][1] = verts[i][1]*semantic_world2grid[0][0][0]+semantic_world2grid[0][1][3]
-        #     new_verts[i][2] = verts[i][2]*semantic_world2grid[0][0][0]+semantic_world2grid[0][0][3]
-        # new_verts = np.array(new_verts)
-        # for j, vert in enumerate(new_verts):
-        #     if 0<vert[0]<zz and 0<vert[1]<yy and 0<vert[2]<xx:
-        #         colors[j] = list(
-        #             create_color_palette()[sementic_pred_visualization[int(vert[0])][int(vert[1])][int(vert[2])]])
-        #     else:
-        #         colors[j] = [128,128,128]
-        # if scene[17] == '.':
-        #     write_ply(new_verts, colors, indices, output_dir + scene[:17] + '__0__pred-semantic.ply')
-        # else:
-        #     write_ply(new_verts, colors, indices, output_dir + scene[:18] + '__0__pred-semantic.ply')
+        # Visualize the prediction and groundtruth in mesh
+        if args.visualization:
+            if not os.path.exists(output_dir):
+                os.mkdir(output_dir)
+            verts, colors, indices = read_ply(target_mesh_path)
+            new_verts = np.zeros(np.shape(verts))
+            for i in range(np.shape(verts)[0]):
+                new_verts[i][0] = verts[i][0] * semantic_world2grid[0][0][0] + semantic_world2grid[0][2][3]
+                new_verts[i][1] = verts[i][1] * semantic_world2grid[0][0][0] + semantic_world2grid[0][1][3]
+                new_verts[i][2] = verts[i][2] * semantic_world2grid[0][0][0] + semantic_world2grid[0][0][3]
+            new_verts = np.array(new_verts)
+            for j, vert in enumerate(new_verts):
+                if 0<vert[0]<zz and 0<vert[1]<yy and 0<vert[2]<xx:
+                    colors[j] = list(
+                        create_color_palette()[sementic_pred_visualization[int(vert[0])][int(vert[1])][int(vert[2])]])
+                else:
+                    colors[j] = [128,128,128]
+            if scene[17] == '.':
+                write_ply(new_verts, colors, indices, output_dir + scene[:17] + '__0__pred-semantic.ply')
+            else:
+                write_ply(new_verts, colors, indices, output_dir + scene[:18] + '__0__pred-semantic.ply')
+            for j, vert in enumerate(new_verts):
+                if 0<vert[0]<zz and 0<vert[1]<yy and 0<vert[2]<xx:
+                    colors[j] = list(
+                        create_color_palette()[sementic_gt_visualization[int(vert[0])][int(vert[1])][int(vert[2])]])
+                else:
+                    colors[j] = [128,128,128]
+            if scene[17] == '.':
+                write_ply(new_verts, colors, indices, output_dir + scene[:17] + '__0__gt-semantic.ply')
+            else:
+                write_ply(new_verts, colors, indices, output_dir + scene[:18] + '__0__gt-semantic.ply')
     iou_list[1][iou_list[1] == 0] = 1
     iou_list[0][iou_list[1] == 0] = 0
     iou_list = iou_list[0]/iou_list[1]
@@ -223,7 +241,7 @@ def main():
     plt.xticks(fontsize=10, rotation=70)
     plt.xlabel('Class')
     plt.ylabel('Average IoU')
-    plt.title("Evaluation in Matterport20 Class")
+    plt.title("Evaluation in Matterport16 Class")
     plt.tight_layout()
     for a, b in zip(label_list_iou, mean_iou):
         plt.text(a, b + 0.003, '%.3f' % b, ha='center', va='bottom', fontsize=6)
@@ -239,7 +257,7 @@ def main():
     plt.xticks(fontsize=10, rotation=70)
     plt.xlabel('Class')
     plt.ylabel('Average Accuracy')
-    plt.title("Evaluation in Matterport20 Class")
+    plt.title("Evaluation in Matterport16 Class")
     plt.tight_layout()
     for a, b in zip(label_list_acc, mean_acc):
         plt.text(a, b + 0.003, '%.3f' % b, ha='center', va='bottom', fontsize=6)

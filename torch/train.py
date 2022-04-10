@@ -11,9 +11,6 @@ import scene_dataloader
 import model
 import loss as loss_util
 
-
-# python train.py --gpu 0 --data_path ./data/completion_blocks_2cm_hierarchy/release_64-64-128  --train_file_list train_list.txt --val_file_list val_list.txt --save logs/mp
-
 # params
 parser = argparse.ArgumentParser()
 # data paths
@@ -322,7 +319,7 @@ def train(epoch, iter, dataloader, log_file, output_save):
                 for b in range(args.batch_size):
                     if pred_occs[h][b] is not None:
                         pred_occs[h][b] = pred_occs[h][b].cpu().numpy()
-            data_util.save_predictions(os.path.join(args.save, 'iter%d-epoch%d' % (iter, epoch), 'train'), sample['name'], inputs, target_for_sdf.cpu().numpy(), [x.cpu().numpy() for x in target_for_occs], vis_pred_sdf, pred_occs, sample['world2grid'].numpy(), args.vis_dfs, args.truncation)
+            l1_loss = data_util.save_predictions(os.path.join(args.save, 'iter%d-epoch%d' % (iter, epoch), 'train'), sample['name'], inputs, target_for_sdf.cpu().numpy(), [x.cpu().numpy() for x in target_for_occs], vis_pred_sdf, pred_occs, sample['world2grid'].numpy(), args.vis_dfs, args.truncation)
     if args.scheduler_step_size == 0:
         scheduler.step()
     return train_losses, losses_semantic, train_l1preds, train_l1tgts, train_ious, iter, loss_weights
@@ -400,7 +397,7 @@ def test(epoch, iter, loss_weights, dataloader, log_file, output_save):
                     for b in range(args.batch_size):
                         if pred_occs[h][b] is not None:
                             pred_occs[h][b] = pred_occs[h][b].cpu().numpy()
-                data_util.save_predictions(os.path.join(args.save, 'iter%d-epoch%d' % (iter, epoch), 'val'), sample['name'], inputs, target_for_sdf.cpu().numpy(), [x.cpu().numpy() for x in target_for_occs], vis_pred_sdf, pred_occs, sample['world2grid'], args.vis_dfs, args.truncation)
+                l1_loss = data_util.save_predictions(os.path.join(args.save, 'iter%d-epoch%d' % (iter, epoch), 'val'), sample['name'], inputs, target_for_sdf.cpu().numpy(), [x.cpu().numpy() for x in target_for_occs], vis_pred_sdf, pred_occs, sample['world2grid'], args.vis_dfs, args.truncation)
 
     #took = time.time() - start
     return val_losses, val_losses_semantic, val_l1preds, val_l1tgts, val_ious

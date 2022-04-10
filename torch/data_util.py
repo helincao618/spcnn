@@ -287,7 +287,7 @@ def save_predictions(output_path, names, inputs, target_for_sdf, target_for_occs
         feats = inputs[1][mask]
         
         input = sparse_to_dense_np(locs[:,:-1], feats, dims[2], dims[1], dims[0], -float('inf'))
-        # mc.marching_cubes(torch.from_numpy(input), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'input-mesh' + ext))
+        mc.marching_cubes(torch.from_numpy(input), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'input-mesh' + ext))
         if output_occs is not None:
             for h in range(num_hierarchy_levels):
                 transform = make_scale_transform(factors[h])
@@ -301,6 +301,18 @@ def save_predictions(output_path, names, inputs, target_for_sdf, target_for_occs
             mc.marching_cubes(torch.from_numpy(pred_sdf_dense), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'pred-mesh' + ext))
         if target_for_sdf is not None:
             target = target_for_sdf[k,0]
-            # mc.marching_cubes(torch.from_numpy(target), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'target-mesh' + ext))
-
-
+            mc.marching_cubes(torch.from_numpy(target), None, isovalue=isovalue, truncation=trunc, thresh=10, output_filename=os.path.join(output_path, name + 'target-mesh' + ext))
+            l1_loss = 0
+            count = 0
+            for i in range(np.shape(pred_sdf_dense)[0]):
+                for j in range(np.shape(pred_sdf_dense)[1]):
+                    for k in range(np.shape(pred_sdf_dense)[2]):
+                        if (pred_sdf_dense[i,j,k] >-100 and target[i,j,k] >-100):
+                            count += 1
+                            l1_loss += np.abs(np.abs(pred_sdf_dense[i,j,k])-np.abs(target[i,j,k]))
+                        elif (pred_sdf_dense[i,j,k] >-100 and target[i,j,k] <-100):
+                            target[i,j,k] = truncation
+                            count += 1
+                            l1_loss += np.abs(np.abs(pred_sdf_dense[i,j,k])-np.abs(target[i,j,k]))
+            l1_loss = l1_loss/np.prod(np.shape(pred_sdf_dense))
+            return l1_loss

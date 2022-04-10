@@ -4,6 +4,7 @@ from __future__ import print_function
 import argparse
 import os, sys
 import random
+from syslog import LOG_SYSLOG
 import torch
 import numpy as np
 import gc
@@ -12,8 +13,6 @@ import h5py
 import data_util
 import scene_dataloader
 import model
-
-# python test_scene.py --gpu 0 --input_data_path ./data/mp_sdf_vox_2cm_input --target_data_path ./data/mp_sdf_vox_2cm_target --test_file_list filelists/mp_rooms_1.txt --output output/mp
 
 
 # params
@@ -61,7 +60,7 @@ if not args.cpu:
 checkpoint = torch.load(args.model_path)
 model.load_state_dict(checkpoint['state_dict'])
 print('loaded model:', args.model_path)
-
+L1LOSS = []
 
 def test(loss_weights, dataloader, output_vis, num_to_vis):
     model.eval()
@@ -108,10 +107,14 @@ def test(loss_weights, dataloader, output_vis, num_to_vis):
             if len(output_sdf[0]) > 0:
                 vis_pred_sdf[0] = [output_sdf[0].cpu().numpy(), output_sdf[1].squeeze().cpu().numpy()]
             inputs = [inputs[0].numpy(), inputs[1].cpu().numpy()]
-            data_util.save_predictions(output_vis, sample['name'], inputs, target.cpu().numpy(), None, vis_pred_sdf, None, sample['world2grid'], args.truncation)
+            l1_loss = data_util.save_predictions(output_vis, sample['name'], inputs, target.cpu().numpy(), None, vis_pred_sdf, None, sample['world2grid'], args.truncation)
+            print(l1_loss)
+            L1LOSS.append(l1_loss)
             num_vis += 1
             if num_vis >= num_to_vis:
                 break
+    l1_loss = np.mean(np.array(L1LOSS))
+    print('l1_loss',l1_loss)
     sys.stdout.write('\n')
 
 

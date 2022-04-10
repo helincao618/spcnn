@@ -1,6 +1,3 @@
-'''
-The script aims to generate the ground truth and align to the predication
-'''
 import struct
 import h5py
 import numpy as np
@@ -9,6 +6,15 @@ import json
 import os
 from tqdm import tqdm
 import csv
+import argparse
+
+# params
+parser = argparse.ArgumentParser()
+# data paths
+parser.add_argument('--output_dir', type=str, required=True, help='output directory')
+parser.add_argument('--target_dir', type=str, required=True, help='target sdf directory')
+parser.add_argument('--mesh_dir', type=str, required=True, help='mesh directory')
+args = parser.parse_args()
 
 def create_color_palette():
     return [
@@ -97,7 +103,7 @@ def load_scene(file):
     sdf = np.asarray(sdf, dtype=np.float32)
     sdf /= voxelsize
     fin.close()
-    return [locs, sdf], [dimz, dimy, dimx], world2grid
+    return world2grid
 
 def visualize_semantic(semantic_label, out_name):
     zz, yy, xx = np.shape(semantic_label)
@@ -154,21 +160,21 @@ def name_to_nuy40id(name, raw_name_list, name_list, id_list):
 
 
 def main():
-    scenelist = open("scenelist_test.txt", "r")
+    scenelist = open("../../filelists/scenelist_test.txt", "r")
     lines = scenelist.read().splitlines()
     scenelist.close()
-    name_mapping = open('category_mapping.tsv')
+    name_mapping = open('../../filelists/category_mapping.tsv')
     name_mapping = np.array(list(csv.reader(name_mapping, delimiter="\t")))
     raw_name_list = name_mapping[1:, 1]
     name_list = name_mapping[1:, 2]
     id_list = name_mapping[1:, 5]
     id_list[1239] = '40'
-    output_dir = '../dataset/h5_semantic_groundtruth_scenes/'
-    mesh_file_dir = '../dataset/room_mesh/'
-    target_file_dir = '../dataset/mp_sdf_vox_2cm_target/'
+    output_dir = args.output_dir
+    mesh_file_dir = args.mesh_dir
+    target_file_dir = args.target_dir
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    for scene in tqdm(lines[16:]):
+    for scene in tqdm(lines):
         print('processing the scene ' + scene)
         input_path = mesh_file_dir + scene
         output_path = output_dir + scene
@@ -180,7 +186,7 @@ def main():
             if not os.path.exists(target_file_path):
                 print(scene + '_room' + str(ply_file_index) + '__0__.sdf')
                 continue
-            [locs, sdf], [dimz, dimy, dimx], world2grid = load_scene(target_file_path)
+            world2grid = load_scene(target_file_path)
             print('processing the room ' + str(ply_file_index) + ' of the scene ' + scene)
             points = read_ply(input_path + '/' + ply_file)
             with open(input_path + '/region' + str(ply_file_index) + '.semseg.json', 'r') as load_f:

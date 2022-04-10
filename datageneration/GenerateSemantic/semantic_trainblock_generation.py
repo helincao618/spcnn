@@ -3,9 +3,19 @@ import struct
 import numpy as np
 import os
 from tqdm import tqdm
+import argparse
 
 
-THRESHOLD = 2.5
+THRESHOLD = 1.7
+
+# params
+parser = argparse.ArgumentParser()
+# data paths
+parser.add_argument('--output_dir', type=str, required=True, help='output directory')
+parser.add_argument('--input_scene_dir', type=str, required=True, help='input scene directory')
+parser.add_argument('--input_block_dir', type=str, required=True, help='input block directory')
+parser.add_argument('--input_semantic_dir', type=str, required=True, help='input semantic directory')
+args = parser.parse_args()
 
 
 def create_color_palette():
@@ -156,8 +166,8 @@ def write_ply(verts, colors, indices, output_file):
     file.write('property list uchar uint vertex_indices\n')
     file.write('end_header\n')
     for vert, color in zip(verts, colors):
-        file.write("{:f} {:f} {:f} {:d} {:d} {:d}\n".format(vert[0], vert[1], vert[2], int(color[0] * 255),
-                                                            int(color[1] * 255), int(color[2] * 255)))
+        file.write("{:f} {:f} {:f} {:d} {:d} {:d}\n".format(vert[0], vert[1], vert[2], int(color[0]),
+                                                            int(color[1]), int(color[2])))
     for ind in indices:
         file.write('3 {:d} {:d} {:d}\n'.format(ind[0], ind[1], ind[2]))
     file.close()
@@ -247,12 +257,14 @@ def load_scene(file):
 
 
 def main():
-    output_path = '../dataset/h5_semantic_train_blocks/'
-    input_scene_path = '../dataset/mp_sdf_vox_2cm_target/'
-    input_block_path = '../dataset/completion_blocks/'
-    input_semantic_path = '../dataset/h5_semantic_scenes_extraction/'
+    output_path = args.output_dir
+    input_scene_path = args.input_scene_dir
+    input_block_path = args.input_block_dir
+    input_semantic_path = args.input_semantic_dir
     block_index_list = os.listdir(input_block_path)
-    print(block_index_list[405])
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    # print(block_index_list[405])
     for block_index in tqdm(block_index_list):
         if block_index[17] != '_':
             room_index = block_index[0:18]
@@ -275,7 +287,6 @@ def main():
                         locs = (np.array([i,j,k]) - world2grid_chunk)/scale_zyx + world2grid_semantic[1]
                         if locs[0] < np.shape(semantic_label)[0] and locs[1] < np.shape(semantic_label)[1] and locs[2] < np.shape(semantic_label)[2]:
                             chunk_semantic[i][j][k] = semantic_label[int(locs[0])][int(locs[1])][int(locs[2])]
-
         hierarchy_chunk_level0 = (hierarchy_chunk[0] < THRESHOLD*8) & (hierarchy_chunk[0] > -THRESHOLD*8)
         hierarchy_chunk_level1 = (hierarchy_chunk[1] < THRESHOLD*4) & (hierarchy_chunk[1] > -THRESHOLD*4)
         hierarchy_chunk_level2 = (hierarchy_chunk[2] < THRESHOLD*2) & (hierarchy_chunk[2] > -THRESHOLD*2)
@@ -298,8 +309,6 @@ def main():
         # visualize_semantic(hierarchy_semantic_level0, 'hierarchy_semantic_level0.ply')
         # visualize_semantic(hierarchy_semantic_level1, 'hierarchy_semantic_level1.ply')
         # visualize_semantic(hierarchy_semantic_level2, 'hierarchy_semantic_level2.ply')
-
-
 
 if __name__ == "__main__":
     try:

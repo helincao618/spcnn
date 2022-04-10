@@ -5,10 +5,16 @@ import json
 import os
 from tqdm import tqdm
 import csv
+import argparse
 
+SCALE_POINT_VOXEL = 50/3
 
-SCALE_POINT_VOXEL = 50/5
-
+# params
+parser = argparse.ArgumentParser()
+# data paths
+parser.add_argument('--output_dir', type=str, required=True, help='output directory')
+parser.add_argument('--input_dir', type=str, required=True, help='input directory')
+args = parser.parse_args()
 
 def create_color_palette():
     return [
@@ -139,21 +145,21 @@ def read_ply(ply_file):
 
 
 def main():
-    scenelist = open("scenelist_train.txt", "r")
+    scenelist = open("../../filelists/scenelist_train.txt", "r")
     lines = scenelist.read().splitlines()
     scenelist.close()
-    name_mapping = open('category_mapping.tsv')
+    name_mapping = open('../../filelists/category_mapping.tsv')
     name_mapping = np.array(list(csv.reader(name_mapping, delimiter="\t")))
     raw_name_list = name_mapping[1:,1]
     name_list = name_mapping[1:,2]
     id_list = name_mapping[1:,5]
     id_list[1239] = '40'
-    output_dir = '../dataset/h5_semantic_scenes_extraction/'
+    output_dir = args.output_dir
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    for scene in tqdm(lines[:1]):
+    for scene in tqdm(lines):
         print('processing the scene '+scene)
-        input_path = '../dataset/room_mesh/' + scene
+        input_path = args.input_dir + scene
         output_path = output_dir + scene
         list_dir = os.listdir(input_path)
         ply_files = [ply_file for ply_file in list_dir if 'ply' in ply_file]
