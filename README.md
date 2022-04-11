@@ -99,12 +99,12 @@ dataset
     ```
     --retrain spcnn.pth --encoder_dim 16 --coarse_feat_dim 32 --refine_feat_dim 32
     ```
-### Testing
+### Test
 * See `python test_scene.py --help` for all test options. 
 * Example command: 
 
     ```
-    python test_scene.py --gpu 0 --input_data_path ../../dataset/mp_sdf_vox_2cm_input --target_data_path ../../dataset/mp_sdf_vox_2cm_target --test_file_list ../filelists/mp-rooms_val-scenes.txt --model_path spcnn.pth --output ../../output/mp  --max_to_vis 400
+    python test_scene.py --gpu 0 --input_data_path ../../dataset/mp_sdf_vox_2cm_input --target_data_path ../../dataset/mp_sdf_vox_2cm_target --test_file_list ../filelists/mp-rooms_test-scenes.txt --model_path spcnn.pth --output ../../output/mp  --max_to_vis 400
     ```
 * To test the trained model, you need to use the following argument.  
 
