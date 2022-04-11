@@ -8,7 +8,7 @@ The thesis implemented a self-supervised approach that convert partial and noisy
     conda create -n spcnn python=3.8
     conda activate spcnn
     conda install pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.0 -c pytorch
-    pip install plyfile h5py scipy tqdm
+    pip install plyfile h5py scipy tqdm matplotlib
     ```
 
 2. The thesis also use [SparseConvNet](https://github.com/facebookresearch/SparseConvNet). Please install it in your virtual environment.
