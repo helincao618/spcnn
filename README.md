@@ -1,4 +1,4 @@
-# Semantic-Panoptic-Completion
+# 3D Semantic Panoptic Completion for RGB-D Scans
 
 The thesis implemented a self-supervised approach that convert partial and noisy RGB-D scans into high-quality 3D scene reconstructions with semantic labels by a sparse convolutional autoencoder.
 
